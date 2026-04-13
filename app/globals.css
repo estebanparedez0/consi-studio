@@ -25,3 +25,12 @@ a {
 ::selection {
   background: rgba(123, 82, 69, 0.18);
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

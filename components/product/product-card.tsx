@@ -46,7 +46,7 @@ export function ProductCard({ product }: ProductCardProps) {
             Ver detalle
           </Button>
           <Button
-            href={buildWhatsAppHref(product)}
+            href={buildWhatsAppHref({ product })}
             target="_blank"
             rel="noreferrer"
             className="flex-1"

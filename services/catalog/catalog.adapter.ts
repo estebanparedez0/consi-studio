@@ -99,13 +99,17 @@ export function adaptCatalogItem(item: unknown, index: number): Product | null {
 
   const images = pickImages(record);
   const currency = pickString(record, ["currency", "moneda"]) ?? "UYU";
-  const price = pickNumber(record, ["price", "precio", "amount", "salePrice", "sale_price"]);
+  const basePrice = pickNumber(record, ["price", "precio", "amount"]);
+  const salePrice = pickNumber(record, ["salePrice", "sale_price"]);
+  const price = salePrice ?? basePrice;
   const slugSource = pickString(record, ["slug"]) ?? name;
   const id = String(
     pickString(record, ["id", "_id", "sku", "code"]) ?? `${slugify(slugSource)}-${index + 1}`
   );
   const googleCategory = pickString(record, ["google_product_category"]);
   const availability = pickString(record, ["availability"]);
+  const compareAtPrice = salePrice && basePrice && salePrice < basePrice ? basePrice : undefined;
+  const badge = salePrice && compareAtPrice ? "sale" : availability === "in stock" ? "new" : undefined;
 
   return {
     id,
@@ -115,6 +119,10 @@ export function adaptCatalogItem(item: unknown, index: number): Product | null {
     price,
     currency,
     priceLabel: typeof price === "number" ? formatCurrency(price, currency) : undefined,
+    compareAtPrice,
+    compareAtPriceLabel:
+      typeof compareAtPrice === "number" ? formatCurrency(compareAtPrice, currency) : undefined,
+    badge,
     imageUrl: images[0],
     gallery: images,
     category: pickString(record, ["category", "categoria", "collection", "brand"]) ?? googleCategory,
