@@ -57,6 +57,17 @@ const deliveryOptions: Array<{
   }
 ];
 
+function hasValidAddressDetails(form: ShippingFormState) {
+  return (
+    form.address.trim().length >= 8 &&
+    form.city.trim().length >= 2
+  );
+}
+
+function buildAddressQuery(form: ShippingFormState) {
+  return [form.address.trim(), form.city.trim(), "Uruguay"].filter(Boolean).join(", ");
+}
+
 export function CartDrawer() {
   const { items, isOpen, totalAmount, closeDrawer, removeItem, updateQuantity } = useCart();
   const [step, setStep] = useState<CheckoutStep>("cart");
@@ -64,6 +75,8 @@ export function CartDrawer() {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [lastPaymentUrl, setLastPaymentUrl] = useState<string | null>(null);
+  const [confirmedAddressQuery, setConfirmedAddressQuery] = useState("");
+  const [addressError, setAddressError] = useState("");
 
   const whatsappHref = buildCartWhatsAppHref(
     items.map((item) => ({
@@ -80,9 +93,10 @@ export function CartDrawer() {
     shippingForm.email.trim() &&
     shippingForm.phone.trim() &&
     (shippingForm.deliveryMethod === "pickup" ||
-      (shippingForm.address.trim() && shippingForm.city.trim()));
+      Boolean(confirmedAddressQuery));
 
   const canProceedToPayment = items.length > 0 && totalAmount > 0 && Boolean(isShippingComplete);
+  const hasAddressDetails = hasValidAddressDetails(shippingForm);
 
   const paymentSummary = useMemo(
     () => Array.from(new Set(items.map((item) => item.paymentLabel).filter(Boolean))).join(" · "),
@@ -92,6 +106,7 @@ export function CartDrawer() {
   function resetAndClose() {
     setStep("cart");
     setPaymentError("");
+    setAddressError("");
     setIsCreatingPayment(false);
     closeDrawer();
   }
@@ -104,6 +119,26 @@ export function CartDrawer() {
     if (field !== "notes") {
       setPaymentError("");
     }
+    if (field === "deliveryMethod") {
+      setAddressError("");
+      if (value === "pickup") {
+        setConfirmedAddressQuery("");
+      }
+    }
+    if (field === "address" || field === "city") {
+      setConfirmedAddressQuery("");
+      setAddressError("");
+    }
+  }
+
+  function handleConfirmAddress() {
+    if (!hasAddressDetails) {
+      setAddressError("Ingresa una direccion valida y una ciudad para confirmar el envio.");
+      return;
+    }
+
+    setConfirmedAddressQuery(buildAddressQuery(shippingForm));
+    setAddressError("");
   }
 
   async function handleCreatePayment() {
@@ -317,7 +352,12 @@ export function CartDrawer() {
 
               {shippingForm.deliveryMethod === "shipping" ? (
                 <section className="space-y-3 rounded-[1.5rem] border border-line bg-surface p-4">
-                  <h3 className="text-[11px] uppercase tracking-[0.18em] text-muted">Envio a domicilio</h3>
+                  <div className="space-y-1">
+                    <h3 className="text-[11px] uppercase tracking-[0.18em] text-muted">Envio a domicilio</h3>
+                    <p className="text-sm leading-6 text-muted">
+                      Confirma tu direccion antes de continuar para minimizar errores y revisar el area de entrega.
+                    </p>
+                  </div>
                   <div className="grid gap-3">
                     <input
                       className="min-h-11 rounded-2xl border border-line bg-background px-4 text-sm"
@@ -338,6 +378,50 @@ export function CartDrawer() {
                       onChange={(event) => updateShippingField("notes", event.target.value)}
                     />
                   </div>
+                  <button
+                    type="button"
+                    className={`inline-flex min-h-11 w-full items-center justify-center rounded-full px-5 text-sm font-medium uppercase tracking-[0.16em] ${
+                      hasAddressDetails ? "bg-foreground text-background" : "bg-line text-white/80"
+                    }`}
+                    disabled={!hasAddressDetails}
+                    onClick={handleConfirmAddress}
+                  >
+                    {confirmedAddressQuery ? "Direccion confirmada" : "Confirmar direccion de envio"}
+                  </button>
+                  {addressError ? (
+                    <div className="rounded-[1rem] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {addressError}
+                    </div>
+                  ) : null}
+                  {confirmedAddressQuery ? (
+                    <div className="space-y-3 rounded-[1.25rem] border border-line bg-background p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Direccion validada</p>
+                          <p className="mt-1 text-sm leading-6 text-foreground">{confirmedAddressQuery}</p>
+                        </div>
+                        <span className="rounded-full bg-accent/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
+                          Confirmada
+                        </span>
+                      </div>
+                      <div className="overflow-hidden rounded-[1rem] border border-line">
+                        <iframe
+                          title="Mapa de direccion de envio"
+                          src={`https://maps.google.com/maps?q=${encodeURIComponent(confirmedAddressQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                          className="h-44 w-full border-0"
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                      </div>
+                      <p className="text-xs leading-5 text-muted">
+                        Revisa la referencia del mapa y, si necesitas corregir algo, edita la direccion antes de seguir.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-[1rem] border border-dashed border-line bg-background px-3 py-3 text-sm text-muted">
+                      Completa tus datos y confirma la direccion para habilitar el siguiente paso.
+                    </div>
+                  )}
                 </section>
               ) : (
                 <section className="space-y-3 rounded-[1.5rem] border border-line bg-surface p-4">
@@ -410,8 +494,7 @@ export function CartDrawer() {
                   <p>{shippingForm.phone}</p>
                   {shippingForm.deliveryMethod === "shipping" ? (
                     <>
-                      <p>{shippingForm.address}</p>
-                      <p>{shippingForm.city}</p>
+                      <p>{confirmedAddressQuery || buildAddressQuery(shippingForm)}</p>
                     </>
                   ) : (
                     <p>Retiro coordinado por local</p>

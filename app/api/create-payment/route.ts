@@ -28,15 +28,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ url });
   } catch (error) {
     console.error("Failed to create Plexo payment link", error);
+    const message =
+      error instanceof Error
+        ? error.message
+        : "No pudimos generar el link de pago de Plexo.";
+    const isMissingEnv = message.includes("PLEXO_CLIENT_ID") || message.includes("PLEXO_CLIENT_SECRET");
 
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "No pudimos generar el link de pago de Plexo."
+        error: isMissingEnv
+          ? `Configuracion incompleta de Plexo DEV: ${message}`
+          : message
       },
-      { status: 500 }
+      { status: isMissingEnv ? 503 : 500 }
     );
   }
 }
