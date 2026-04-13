@@ -113,28 +113,28 @@ export function adaptCatalogItem(item: unknown, index: number): Product | null {
           {
             id: "base",
             label: "Precio lista",
-            iconSrc: "/payment/transf.png",
+            iconSrc: "https://cfluna.com/assets/universoconsi.com/files/banks/transf.png",
             amount: price,
             amountLabel: formatCurrency(price, currency)
           },
           {
             id: "transfer",
             label: "Transferencia",
-            iconSrc: "/payment/transf.png",
+            iconSrc: "https://cfluna.com/assets/universoconsi.com/files/banks/transf.png",
             amount: Math.round(price * 0.9),
             amountLabel: formatCurrency(Math.round(price * 0.9), currency)
           },
           {
             id: "itau-debit",
             label: "Itau debito",
-            iconSrc: "/payment/itau.svg",
+            iconSrc: "https://cfluna.com/assets/universoconsi.com/files/banks/itau.svg",
             amount: Math.round(price * 0.92),
             amountLabel: formatCurrency(Math.round(price * 0.92), currency)
           },
           {
             id: "itau-credit",
             label: "Itau credito",
-            iconSrc: "/payment/itau.png",
+            iconSrc: "https://cfluna.com/assets/universoconsi.com/files/banks/itau.png",
             amount: price,
             amountLabel: formatCurrency(price, currency)
           }

@@ -1,12 +1,13 @@
-import Image from "next/image";
-
+import { PaymentLogo } from "@/components/product/payment-logo";
 import type { ProductPaymentOption } from "@/types/product";
 
 interface ProductPricingProps {
   options?: ProductPaymentOption[];
+  selectedOptionId?: string;
+  onSelect?: (optionId: string) => void;
 }
 
-export function ProductPricing({ options }: ProductPricingProps) {
+export function ProductPricing({ options, selectedOptionId, onSelect }: ProductPricingProps) {
   if (!options || options.length === 0) {
     return null;
   }
@@ -34,14 +35,17 @@ export function ProductPricing({ options }: ProductPricingProps) {
 
       <div className="divide-y divide-line/70">
         {options.map((option) => (
-          <article
+          <button
             key={option.id}
-            className="flex min-h-11 items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
+            type="button"
+            className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left first:pt-0 last:pb-0"
+            onClick={() => onSelect?.(option.id)}
           >
             <div className="flex items-center gap-3">
-              <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full bg-white">
-                <Image src={option.iconSrc} alt={option.label} fill sizes="24px" className="object-contain" />
-              </div>
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${selectedOptionId === option.id ? "bg-accent" : "bg-line"}`}
+              />
+              <PaymentLogo src={option.iconSrc} alt={option.label} />
               <p className="text-sm text-foreground">{option.label}</p>
             </div>
             <div className="text-right">
@@ -50,7 +54,7 @@ export function ProductPricing({ options }: ProductPricingProps) {
                 <p className="text-[10px] uppercase tracking-[0.16em] text-muted">Destacado</p>
               ) : null}
             </div>
-          </article>
+          </button>
         ))}
       </div>
     </section>

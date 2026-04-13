@@ -9,7 +9,7 @@ import {
   type ReactNode
 } from "react";
 
-interface CartItem {
+export interface CartItem {
   id: string;
   productId: string;
   slug: string;
@@ -17,6 +17,7 @@ interface CartItem {
   imageUrl?: string;
   price?: number;
   priceLabel?: string;
+  paymentLabel?: string;
   quantity: number;
   colorName?: string;
   sizeLabel?: string;
@@ -29,6 +30,7 @@ interface AddCartItemInput {
   imageUrl?: string;
   price?: number;
   priceLabel?: string;
+  paymentLabel?: string;
   quantity: number;
   colorName?: string;
   sizeLabel?: string;
@@ -70,13 +72,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
+  function buildItemId(item: {
+    productId: string;
+    colorName?: string;
+    sizeLabel?: string;
+    paymentLabel?: string;
+    price?: number;
+  }) {
+    return [
+      item.productId,
+      item.colorName ?? "sin-color",
+      item.sizeLabel ?? "sin-talle",
+      item.paymentLabel ?? "sin-promo",
+      typeof item.price === "number" ? item.price : "sin-precio"
+    ].join("-");
+  }
+
   function addItem(item: AddCartItemInput) {
     setItems((current) => {
       const existingIndex = current.findIndex(
         (entry) =>
           entry.productId === item.productId &&
           entry.colorName === item.colorName &&
-          entry.sizeLabel === item.sizeLabel
+          entry.sizeLabel === item.sizeLabel &&
+          entry.paymentLabel === item.paymentLabel &&
+          entry.price === item.price
       );
 
       if (existingIndex === -1) {
@@ -84,7 +104,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           ...current,
           {
             ...item,
-            id: `${item.productId}-${item.colorName ?? "sin-color"}-${item.sizeLabel ?? "sin-talle"}`
+            id: buildItemId(item)
           }
         ];
       }

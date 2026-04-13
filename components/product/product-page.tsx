@@ -140,6 +140,16 @@ function getTrustPoints(product: Product) {
   return product.pdp?.trustPoints?.length ? product.pdp.trustPoints : DEFAULT_TRUST_POINTS;
 }
 
+function getLowestPaymentOption(product: Product) {
+  return product.pdp?.paymentOptions?.reduce((best, option) => {
+    if (typeof option.amount !== "number") return best;
+    if (!best || typeof best.amount !== "number" || option.amount < best.amount) {
+      return option;
+    }
+    return best;
+  }, product.pdp?.paymentOptions?.[0]);
+}
+
 export function ProductPage({ product, relatedProducts }: ProductPageProps) {
   const router = useRouter();
   const { addItem } = useCart();
@@ -150,8 +160,11 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
   const shortDescription = getDescription(product);
   const materials = getMaterials(product);
   const details = getDetails(product);
+  const paymentOptions = product.pdp?.paymentOptions ?? [];
+  const defaultPaymentOption = getLowestPaymentOption(product);
   const [selectedColorId, setSelectedColorId] = useState(colors[0]?.id ?? "");
   const [selectedSizeId, setSelectedSizeId] = useState<string | undefined>();
+  const [selectedPaymentId, setSelectedPaymentId] = useState(defaultPaymentOption?.id);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [cartFeedback, setCartFeedback] = useState<"" | "Agregado a tu carrito">("");
@@ -166,6 +179,14 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
         : product.imageUrl
           ? [product.imageUrl]
           : [];
+  const selectedPaymentOption =
+    paymentOptions.find((option) => option.id === selectedPaymentId) ?? defaultPaymentOption;
+  const effectivePrice = selectedPaymentOption?.amount ?? product.price;
+  const effectivePriceLabel = selectedPaymentOption?.amountLabel ?? product.priceLabel;
+  const effectiveInstallment =
+    typeof effectivePrice === "number"
+      ? `${3} cuotas sin interes de ${formatCurrency(Math.round(effectivePrice / 3), product.currency ?? "UYU")}`
+      : installment?.label;
 
   const accordionItems = [
     {
@@ -187,8 +208,9 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
       slug: product.slug,
       name: product.name,
       imageUrl: selectedColor?.imageUrl ?? product.imageUrl,
-      price: product.price,
-      priceLabel: product.priceLabel,
+      price: effectivePrice,
+      priceLabel: effectivePriceLabel,
+      paymentLabel: selectedPaymentOption?.label,
       quantity,
       colorName: selectedColor?.name,
       sizeLabel: selectedSize.label
@@ -222,11 +244,17 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
           <div className="space-y-5 rounded-[2rem] bg-background">
             <ProductInfo
               product={product}
-              installmentLabel={installment?.label}
+              priceLabel={effectivePriceLabel}
+              compareAtPriceLabel={product.compareAtPriceLabel}
+              installmentLabel={effectiveInstallment}
               shortDescription={shortDescription}
             />
 
-            <ProductPricing options={product.pdp?.paymentOptions} />
+            <ProductPricing
+              options={paymentOptions}
+              selectedOptionId={selectedPaymentOption?.id}
+              onSelect={setSelectedPaymentId}
+            />
 
             <ColorSelector
               colors={colors}
@@ -327,7 +355,7 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
       </div>
 
       <StickyCTA
-        priceLabel={product.priceLabel}
+        priceLabel={effectivePriceLabel}
         disabled={!selectedSize}
         onClick={handleAddToCart}
       />

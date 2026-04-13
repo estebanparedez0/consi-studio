@@ -3,11 +3,19 @@ import type { Product } from "@/types/product";
 
 interface ProductInfoProps {
   product: Product;
+  priceLabel?: string;
+  compareAtPriceLabel?: string;
   installmentLabel?: string;
   shortDescription?: string;
 }
 
-export function ProductInfo({ product, installmentLabel, shortDescription }: ProductInfoProps) {
+export function ProductInfo({
+  product,
+  priceLabel,
+  compareAtPriceLabel,
+  installmentLabel,
+  shortDescription
+}: ProductInfoProps) {
   return (
     <section className="space-y-3">
       <div className="space-y-2.5">
@@ -22,10 +30,12 @@ export function ProductInfo({ product, installmentLabel, shortDescription }: Pro
           <h1 className="font-display text-[2rem] leading-[1.02] text-foreground">{product.name}</h1>
           <div className="flex flex-wrap items-end gap-3">
             <p className="text-[1.65rem] font-medium leading-none text-foreground">
-              {product.priceLabel ?? "Precio a confirmar"}
+              {priceLabel ?? product.priceLabel ?? "Precio a confirmar"}
             </p>
-            {product.compareAtPriceLabel ? (
-              <p className="text-sm text-muted line-through">{product.compareAtPriceLabel}</p>
+            {(compareAtPriceLabel ?? product.compareAtPriceLabel) ? (
+              <p className="text-sm text-muted line-through">
+                {compareAtPriceLabel ?? product.compareAtPriceLabel}
+              </p>
             ) : null}
           </div>
           {installmentLabel ? (
