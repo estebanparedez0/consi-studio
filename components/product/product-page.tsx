@@ -4,7 +4,10 @@ import { useState } from "react";
 
 import { ColorSelector } from "@/components/product/color-selector";
 import { ImageCarousel } from "@/components/product/image-carousel";
+import { ProductAccordion } from "@/components/product/product-accordion";
 import { ProductInfo } from "@/components/product/product-info";
+import { QuantitySelector } from "@/components/product/quantity-selector";
+import { RelatedProducts } from "@/components/product/related-products";
 import { SizeSelector } from "@/components/product/size-selector";
 import { StickyCTA } from "@/components/product/sticky-cta";
 import { WhatsAppFloatingButton } from "@/components/product/whatsapp-floating-button";
@@ -20,6 +23,7 @@ import type {
 
 interface ProductPageProps {
   product: Product;
+  relatedProducts: Product[];
 }
 
 const FALLBACK_COLORS: Array<Pick<ProductColorOption, "name" | "value">> = [
@@ -135,7 +139,7 @@ function getTrustPoints(product: Product) {
   return product.pdp?.trustPoints?.length ? product.pdp.trustPoints : DEFAULT_TRUST_POINTS;
 }
 
-export function ProductPage({ product }: ProductPageProps) {
+export function ProductPage({ product, relatedProducts }: ProductPageProps) {
   const colors = getColors(product);
   const sizes = getSizes(product);
   const installment = getInstallment(product);
@@ -146,6 +150,8 @@ export function ProductPage({ product }: ProductPageProps) {
   const [selectedColorId, setSelectedColorId] = useState(colors[0]?.id ?? "");
   const [selectedSizeId, setSelectedSizeId] = useState<string | undefined>();
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [cartFeedback, setCartFeedback] = useState<"" | "Agregado a tu carrito">("");
 
   const selectedColor = colors.find((color) => color.id === selectedColorId) ?? colors[0];
   const selectedSize = sizes.find((size) => size.id === selectedSizeId);
@@ -163,11 +169,28 @@ export function ProductPage({ product }: ProductPageProps) {
     colorName: selectedColor?.name,
     sizeLabel: selectedSize?.label
   });
+  const accordionItems = [
+    {
+      id: "shipping",
+      title: "Envios",
+      content: "Hacemos envios a todo el pais. Te compartimos tiempos, costos y seguimiento apenas completas tu compra."
+    },
+    {
+      id: "changes",
+      title: "Cambios y devoluciones",
+      content: "Si necesitas otro talle o color, te acompanamos con cambios simples y atencion personalizada."
+    }
+  ];
+
+  function handleAddToCart() {
+    if (!selectedSize) return;
+    setCartFeedback("Agregado a tu carrito");
+  }
 
   return (
     <>
-      <div className="mx-auto max-w-3xl px-4 pb-36 pt-4 sm:px-5 sm:pt-6">
-        <div className="space-y-7">
+      <div className="mx-auto max-w-5xl px-4 pb-36 pt-3 sm:px-5 sm:pt-4">
+        <div className="space-y-6 lg:grid lg:grid-cols-[0.95fr_0.85fr] lg:gap-8 lg:space-y-0">
           <ImageCarousel
             key={selectedColorId}
             images={images}
@@ -176,7 +199,7 @@ export function ProductPage({ product }: ProductPageProps) {
             onIndexChange={setActiveImageIndex}
           />
 
-          <div className="space-y-7 rounded-[2rem] bg-background">
+          <div className="space-y-5 rounded-[2rem] bg-background">
             <ProductInfo product={product} installmentLabel={installment?.label} />
 
             <ColorSelector
@@ -195,57 +218,83 @@ export function ProductPage({ product }: ProductPageProps) {
               guideLabel={product.pdp?.sizeGuideLabel}
             />
 
-            <section className="grid gap-3">
+            <QuantitySelector
+              quantity={quantity}
+              onDecrease={() => setQuantity((current) => Math.max(1, current - 1))}
+              onIncrease={() => setQuantity((current) => current + 1)}
+            />
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                disabled={!selectedSize}
+                onClick={handleAddToCart}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-accent px-5 text-sm font-medium uppercase tracking-[0.16em] text-white transition duration-200 disabled:bg-line disabled:text-white/80"
+              >
+                Agregar a mi carrito
+              </button>
+              {cartFeedback ? (
+                <p className="text-sm text-muted">{cartFeedback}</p>
+              ) : null}
+            </div>
+
+            <section className="grid gap-2.5">
               {trustPoints.map((point) => (
                 <article
                   key={point.id}
-                  className="rounded-card border border-line bg-surface px-4 py-4 shadow-soft"
+                  className="rounded-[1.4rem] border border-line bg-surface px-4 py-3.5 shadow-soft"
                 >
                   <p className="text-sm font-medium text-foreground">{point.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-muted">{point.description}</p>
+                  <p className="mt-1 text-sm leading-5 text-muted">{point.description}</p>
                 </article>
               ))}
             </section>
 
-            <section className="space-y-5 rounded-[2rem] border border-line bg-surface p-5 shadow-soft">
+            <section className="space-y-4 rounded-[1.8rem] border border-line bg-surface p-4 shadow-soft">
               <div className="space-y-3">
-                <h2 className="text-sm font-medium uppercase tracking-[0.18em] text-foreground">
+                <h2 className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground">
                   Descripcion
                 </h2>
                 <p className="text-sm leading-7 text-muted">{description}</p>
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-foreground">
+                <h3 className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground">
                   Materiales
                 </h3>
                 <ul className="space-y-2 text-sm leading-6 text-muted">
                   {materials.map((material) => (
-                    <li key={material}>{material}</li>
+                    <li key={material}>• {material}</li>
                   ))}
                 </ul>
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-foreground">
+                <h3 className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground">
                   Detalles clave
                 </h3>
                 <ul className="space-y-2 text-sm leading-6 text-muted">
                   {details.map((detail) => (
-                    <li key={detail}>{detail}</li>
+                    <li key={detail}>• {detail}</li>
                   ))}
                 </ul>
               </div>
             </section>
+
+            <ProductAccordion items={accordionItems} />
           </div>
+        </div>
+
+        <div className="mt-8">
+          <RelatedProducts products={relatedProducts} />
         </div>
       </div>
 
       <WhatsAppFloatingButton href={whatsappHref} />
       <StickyCTA
         priceLabel={product.priceLabel}
-        href={selectedSize ? whatsappHref : undefined}
         disabled={!selectedSize}
+        onClick={handleAddToCart}
       />
     </>
   );

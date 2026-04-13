@@ -5,10 +5,11 @@ import { cn } from "@/lib/utils";
 interface StickyCTAProps {
   priceLabel?: string;
   disabled?: boolean;
-  href?: string;
+  label?: string;
+  onClick?: () => void;
 }
 
-export function StickyCTA({ priceLabel, disabled, href }: StickyCTAProps) {
+export function StickyCTA({ priceLabel, disabled, label = "Agregar a mi carrito", onClick }: StickyCTAProps) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-background/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur">
       <div className="mx-auto flex max-w-3xl items-center gap-3 rounded-[1.75rem] border border-line bg-surface px-4 py-3 shadow-soft">
@@ -19,7 +20,7 @@ export function StickyCTA({ priceLabel, disabled, href }: StickyCTAProps) {
           </p>
         </div>
 
-        {disabled || !href ? (
+        {disabled ? (
           <button
             type="button"
             disabled
@@ -28,16 +29,15 @@ export function StickyCTA({ priceLabel, disabled, href }: StickyCTAProps) {
             Elegi un talle
           </button>
         ) : (
-          <a
-            href={href}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={onClick}
             className={cn(
               "inline-flex min-h-12 items-center justify-center rounded-full bg-accent px-5 text-sm font-medium text-white transition duration-200 hover:opacity-90"
             )}
           >
-            Comprar por WhatsApp
-          </a>
+            {label}
+          </button>
         )}
       </div>
     </div>

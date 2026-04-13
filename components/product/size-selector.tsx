@@ -22,9 +22,9 @@ export function SizeSelector({
   const [showGuide, setShowGuide] = useState(false);
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-3">
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-sm font-medium uppercase tracking-[0.18em] text-foreground">Talles</h2>
+        <h2 className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground">Talles</h2>
         <button
           type="button"
           className="text-sm text-muted underline underline-offset-4"
@@ -44,7 +44,7 @@ export function SizeSelector({
               type="button"
               disabled={!size.available}
               className={cn(
-                "min-h-12 rounded-2xl border text-sm font-medium transition duration-200",
+                "min-h-11 rounded-2xl border text-sm font-medium transition duration-200",
                 size.available
                   ? "border-line bg-white text-foreground active:scale-[0.98]"
                   : "cursor-not-allowed border-line/50 bg-surfaceStrong text-muted/60 line-through",

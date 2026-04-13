@@ -3,8 +3,9 @@ import type { Product } from "@/types/product";
 
 interface ProductDetailProps {
   product: Product;
+  relatedProducts: Product[];
 }
 
-export function ProductDetail({ product }: ProductDetailProps) {
-  return <ProductPage product={product} />;
+export function ProductDetail({ product, relatedProducts }: ProductDetailProps) {
+  return <ProductPage product={product} relatedProducts={relatedProducts} />;
 }

@@ -1,15 +1,27 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function TopBar() {
   return (
-    <header className="sticky top-0 z-20 border-b border-line/80 bg-background/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-        <Link href="/" className="font-display text-xl tracking-[0.15em] text-foreground">
-          CONSI
+    <header className="sticky top-0 z-30 border-b border-line/70 bg-background/95 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-5">
+        <Link href="/" className="relative block h-9 w-[136px] shrink-0">
+          <Image
+            src="https://cfluna.com/assets/universoconsi.com/files/logo.png"
+            alt="Universo Consi"
+            fill
+            priority
+            sizes="136px"
+            className="object-contain object-left"
+          />
         </Link>
-        <nav className="flex items-center gap-4 text-xs uppercase tracking-[0.18em] text-muted">
-          <Link href="/">Inicio</Link>
-          <Link href="/#catalogo">Catálogo</Link>
+        <nav className="flex items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-muted">
+          <Link href="/#catalogo" className="rounded-full px-2 py-1.5">
+            Shop
+          </Link>
+          <Link href="/" className="rounded-full border border-line bg-surface px-3 py-1.5 text-foreground">
+            New In
+          </Link>
         </nav>
       </div>
     </header>

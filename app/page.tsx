@@ -1,5 +1,5 @@
+import { HomeHeroCarousel } from "@/components/home/home-hero-carousel";
 import { ProductGrid } from "@/components/product/product-grid";
-import { ProductHero } from "@/components/product/product-hero";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { getCatalogProducts } from "@/services/catalog/catalog.service";
 
@@ -10,12 +10,12 @@ export default async function HomePage() {
 
   return (
     <>
-      <ProductHero />
-      <section id="catalogo" className="mx-auto max-w-6xl space-y-6 px-5 py-10 sm:py-14">
+      <HomeHeroCarousel />
+      <section id="catalogo" className="mx-auto max-w-6xl space-y-4 px-4 pb-12 pt-2 sm:px-5 sm:pb-14">
         <SectionHeading
-          eyebrow="Selección"
-          title="Catálogo conectado y listo para convertir."
-          description="El contenido viene desde un endpoint externo y la capa visual queda separada para que podamos escalar sin reescribir la app."
+          eyebrow="Shop the edit"
+          title="Novedades que se venden solas."
+          description="Una selección compacta, visual y pensada para descubrir productos rápido desde mobile."
         />
         <ProductGrid products={products} />
       </section>
