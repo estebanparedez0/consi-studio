@@ -9,6 +9,7 @@ const xmlParser = new XMLParser({
   parseTagValue: true,
   trimValues: true
 });
+let hasLoggedCatalogSample = false;
 
 async function fetchCatalogPayload() {
   if (!env.catalogApiUrl) {
@@ -37,7 +38,24 @@ export async function getCatalogProducts(): Promise<Product[]> {
   try {
     const payload = await fetchCatalogPayload();
     const extracted = extractCatalogItems(payload);
-    return adaptCatalog(extracted.items);
+    const products = adaptCatalog(extracted.items);
+
+    if (!hasLoggedCatalogSample && extracted.items.length > 0) {
+      console.info("[catalog] raw sample", extracted.items.slice(0, 3));
+      console.info(
+        "[catalog] mapped sample",
+        products.slice(0, 3).map((product) => ({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          priceLabel: product.priceLabel,
+          compareAtPrice: product.compareAtPrice
+        }))
+      );
+      hasLoggedCatalogSample = true;
+    }
+
+    return products;
   } catch (error) {
     console.error("Failed to load catalog feed", error);
     return [];

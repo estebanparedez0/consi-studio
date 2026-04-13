@@ -4,9 +4,10 @@ import type { Product } from "@/types/product";
 interface ProductInfoProps {
   product: Product;
   installmentLabel?: string;
+  shortDescription?: string;
 }
 
-export function ProductInfo({ product, installmentLabel }: ProductInfoProps) {
+export function ProductInfo({ product, installmentLabel, shortDescription }: ProductInfoProps) {
   return (
     <section className="space-y-3">
       <div className="space-y-2.5">
@@ -31,6 +32,9 @@ export function ProductInfo({ product, installmentLabel }: ProductInfoProps) {
             <p className="rounded-2xl bg-accentSoft px-3 py-2 text-sm text-foreground">
               {installmentLabel}
             </p>
+          ) : null}
+          {shortDescription ? (
+            <p className="text-sm leading-6 text-muted">{shortDescription}</p>
           ) : null}
         </div>
       </div>

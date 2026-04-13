@@ -1,4 +1,4 @@
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, normalizeCatalogPrice } from "@/lib/utils";
 import type { CatalogResponse } from "@/types/catalog";
 import type { Product } from "@/types/product";
 
@@ -33,11 +33,8 @@ function pickString(record: Record<string, unknown>, keys: string[]) {
 function pickNumber(record: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
     const value = record[key];
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string") {
-      const normalized = Number(value.replace(/[^\d.,-]/g, "").replace(",", "."));
-      if (Number.isFinite(normalized)) return normalized;
-    }
+    const normalized = normalizeCatalogPrice(value);
+    if (typeof normalized === "number") return normalized;
   }
 }
 
@@ -110,6 +107,39 @@ export function adaptCatalogItem(item: unknown, index: number): Product | null {
   const availability = pickString(record, ["availability"]);
   const compareAtPrice = salePrice && basePrice && salePrice < basePrice ? basePrice : undefined;
   const badge = salePrice && compareAtPrice ? "sale" : availability === "in stock" ? "new" : undefined;
+  const paymentOptions =
+    typeof price === "number"
+      ? [
+          {
+            id: "base",
+            label: "Precio lista",
+            iconSrc: "/payment/transf.png",
+            amount: price,
+            amountLabel: formatCurrency(price, currency)
+          },
+          {
+            id: "transfer",
+            label: "Transferencia",
+            iconSrc: "/payment/transf.png",
+            amount: Math.round(price * 0.9),
+            amountLabel: formatCurrency(Math.round(price * 0.9), currency)
+          },
+          {
+            id: "itau-debit",
+            label: "Itau debito",
+            iconSrc: "/payment/itau.svg",
+            amount: Math.round(price * 0.92),
+            amountLabel: formatCurrency(Math.round(price * 0.92), currency)
+          },
+          {
+            id: "itau-credit",
+            label: "Itau credito",
+            iconSrc: "/payment/itau.png",
+            amount: price,
+            amountLabel: formatCurrency(price, currency)
+          }
+        ]
+      : undefined;
 
   return {
     id,
@@ -127,6 +157,9 @@ export function adaptCatalogItem(item: unknown, index: number): Product | null {
     gallery: images,
     category: pickString(record, ["category", "categoria", "collection", "brand"]) ?? googleCategory,
     sku: pickString(record, ["sku", "code", "reference", "id"]),
+    pdp: {
+      paymentOptions
+    },
     raw: item
   };
 }

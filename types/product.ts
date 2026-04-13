@@ -6,6 +6,14 @@ export interface ProductInstallment {
   label: string;
 }
 
+export interface ProductPaymentOption {
+  id: string;
+  label: string;
+  iconSrc: string;
+  amount?: number;
+  amountLabel?: string;
+}
+
 export interface ProductColorOption {
   id: string;
   name: string;
@@ -29,6 +37,7 @@ export interface ProductTrustPoint {
 export interface ProductPdpContent {
   badge?: ProductBadge;
   installment?: ProductInstallment;
+  paymentOptions?: ProductPaymentOption[];
   colors?: ProductColorOption[];
   sizes?: ProductSizeOption[];
   shortDescription?: string;

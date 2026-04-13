@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+
+import { CartButton } from "@/components/cart/cart-button";
 
 export function TopBar() {
   return (
@@ -22,6 +26,7 @@ export function TopBar() {
           <Link href="/" className="rounded-full border border-line bg-surface px-3 py-1.5 text-foreground">
             New In
           </Link>
+          <CartButton />
         </nav>
       </div>
     </header>

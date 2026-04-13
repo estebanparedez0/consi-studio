@@ -16,7 +16,7 @@ export function StickyCTA({ priceLabel, disabled, label = "Agregar a mi carrito"
         <div className="min-w-0 flex-1">
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Precio</p>
           <p className="truncate text-lg font-medium text-foreground">
-            {priceLabel ?? "Consultar por WhatsApp"}
+            {priceLabel ?? "Consultar precio"}
           </p>
         </div>
 

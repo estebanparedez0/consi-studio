@@ -60,8 +60,8 @@ export function SizeSelector({
 
       {showGuide ? (
         <div className="rounded-card border border-line bg-surface p-4 text-sm leading-6 text-muted">
-          Si dudas entre dos talles, te recomendamos elegir el mayor. Tambien podes escribirnos por
-          WhatsApp y te ayudamos a encontrar el calce ideal.
+          Si dudas entre dos talles, te recomendamos elegir el mayor. Nuestro equipo puede ayudarte
+          a encontrar el calce ideal.
         </div>
       ) : null}
     </section>

@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
+import { useCart } from "@/components/cart/cart-provider";
 import { ColorSelector } from "@/components/product/color-selector";
 import { ImageCarousel } from "@/components/product/image-carousel";
 import { ProductAccordion } from "@/components/product/product-accordion";
 import { ProductInfo } from "@/components/product/product-info";
+import { ProductPricing } from "@/components/product/product-pricing";
 import { QuantitySelector } from "@/components/product/quantity-selector";
 import { RelatedProducts } from "@/components/product/related-products";
 import { SizeSelector } from "@/components/product/size-selector";
 import { StickyCTA } from "@/components/product/sticky-cta";
-import { WhatsAppFloatingButton } from "@/components/product/whatsapp-floating-button";
-import { buildWhatsAppHref } from "@/lib/whatsapp";
 import { formatCurrency } from "@/lib/utils";
 import type {
   Product,
@@ -129,7 +130,7 @@ function getDetails(product: Product) {
   const defaults = [
     "Calce comodo con terminacion prolija",
     "Ideal para looks de todos los dias y ocasiones especiales",
-    "Asesoramiento personalizado por WhatsApp"
+    "Atencion personalizada para ayudarte a elegir mejor"
   ];
 
   return product.pdp?.details?.length ? product.pdp.details : defaults;
@@ -140,11 +141,13 @@ function getTrustPoints(product: Product) {
 }
 
 export function ProductPage({ product, relatedProducts }: ProductPageProps) {
+  const router = useRouter();
+  const { addItem } = useCart();
   const colors = getColors(product);
   const sizes = getSizes(product);
   const installment = getInstallment(product);
   const trustPoints = getTrustPoints(product);
-  const description = getDescription(product);
+  const shortDescription = getDescription(product);
   const materials = getMaterials(product);
   const details = getDetails(product);
   const [selectedColorId, setSelectedColorId] = useState(colors[0]?.id ?? "");
@@ -164,11 +167,6 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
           ? [product.imageUrl]
           : [];
 
-  const whatsappHref = buildWhatsAppHref({
-    product,
-    colorName: selectedColor?.name,
-    sizeLabel: selectedSize?.label
-  });
   const accordionItems = [
     {
       id: "shipping",
@@ -184,12 +182,34 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
 
   function handleAddToCart() {
     if (!selectedSize) return;
+    addItem({
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      imageUrl: selectedColor?.imageUrl ?? product.imageUrl,
+      price: product.price,
+      priceLabel: product.priceLabel,
+      quantity,
+      colorName: selectedColor?.name,
+      sizeLabel: selectedSize.label
+    });
     setCartFeedback("Agregado a tu carrito");
   }
 
   return (
     <>
       <div className="mx-auto max-w-5xl px-4 pb-36 pt-3 sm:px-5 sm:pt-4">
+        <div className="mb-4">
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm text-foreground"
+            onClick={() => router.back()}
+          >
+            <span aria-hidden="true">←</span>
+            Volver
+          </button>
+        </div>
+
         <div className="space-y-6 lg:grid lg:grid-cols-[0.95fr_0.85fr] lg:gap-8 lg:space-y-0">
           <ImageCarousel
             key={selectedColorId}
@@ -200,7 +220,13 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
           />
 
           <div className="space-y-5 rounded-[2rem] bg-background">
-            <ProductInfo product={product} installmentLabel={installment?.label} />
+            <ProductInfo
+              product={product}
+              installmentLabel={installment?.label}
+              shortDescription={shortDescription}
+            />
+
+            <ProductPricing options={product.pdp?.paymentOptions} />
 
             <ColorSelector
               colors={colors}
@@ -238,24 +264,34 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
               ) : null}
             </div>
 
-            <section className="grid gap-2.5">
-              {trustPoints.map((point) => (
-                <article
-                  key={point.id}
-                  className="rounded-[1.4rem] border border-line bg-surface px-4 py-3.5 shadow-soft"
-                >
-                  <p className="text-sm font-medium text-foreground">{point.title}</p>
-                  <p className="mt-1 text-sm leading-5 text-muted">{point.description}</p>
-                </article>
-              ))}
+            <section className="space-y-2 rounded-[1.35rem] border border-line/80 bg-surface px-3.5 py-3 shadow-soft">
+              <h2 className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground">
+                Beneficios
+              </h2>
+              <div className="divide-y divide-line/70">
+                {trustPoints.map((point) => (
+                  <article
+                    key={point.id}
+                    className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">{point.title}</p>
+                      <p className="mt-0.5 text-sm leading-5 text-muted">{point.description}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </section>
 
             <section className="space-y-4 rounded-[1.8rem] border border-line bg-surface p-4 shadow-soft">
               <div className="space-y-3">
                 <h2 className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground">
-                  Descripcion
+                  Descripcion extendida
                 </h2>
-                <p className="text-sm leading-7 text-muted">{description}</p>
+                <p className="text-sm leading-7 text-muted">
+                  {product.description ??
+                    "Cada pieza esta pensada para sentirse especial y facil de usar, con foco en comodidad, textura y presencia visual."}
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -290,7 +326,6 @@ export function ProductPage({ product, relatedProducts }: ProductPageProps) {
         </div>
       </div>
 
-      <WhatsAppFloatingButton href={whatsappHref} />
       <StickyCTA
         priceLabel={product.priceLabel}
         disabled={!selectedSize}
