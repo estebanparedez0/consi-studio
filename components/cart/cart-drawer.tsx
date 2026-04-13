@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 
+import { AddressSearch } from "@/components/cart/address-search";
 import { useCart } from "@/components/cart/cart-provider";
 import { buildCartWhatsAppHref } from "@/lib/whatsapp";
 import { formatCurrency } from "@/lib/utils";
@@ -57,6 +59,31 @@ const deliveryOptions: Array<{
   }
 ];
 
+interface AddressCoordinates {
+  lat: number;
+  lng: number;
+}
+
+const DEFAULT_MONTEVIDEO_CENTER: AddressCoordinates = {
+  lat: -34.9011,
+  lng: -56.1645
+};
+
+const DEFAULT_URUGUAY_CENTER: AddressCoordinates = {
+  lat: -32.5228,
+  lng: -55.7658
+};
+
+const AddressMap = dynamic(
+  () => import("@/components/cart/address-map").then((module) => module.AddressMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[236px] w-full animate-pulse rounded-[1rem] border border-line bg-surfaceStrong" />
+    )
+  }
+);
+
 function hasValidAddressDetails(form: ShippingFormState) {
   return (
     form.address.trim().length >= 8 &&
@@ -75,8 +102,12 @@ export function CartDrawer() {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [lastPaymentUrl, setLastPaymentUrl] = useState<string | null>(null);
-  const [confirmedAddressQuery, setConfirmedAddressQuery] = useState("");
+  const [shippingLatLng, setShippingLatLng] = useState<AddressCoordinates | null>(null);
+  const [confirmedShippingLatLng, setConfirmedShippingLatLng] = useState<AddressCoordinates | null>(null);
+  const [shippingAddress, setShippingAddress] = useState("");
   const [addressError, setAddressError] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState("");
 
   const whatsappHref = buildCartWhatsAppHref(
     items.map((item) => ({
@@ -93,10 +124,12 @@ export function CartDrawer() {
     shippingForm.email.trim() &&
     shippingForm.phone.trim() &&
     (shippingForm.deliveryMethod === "pickup" ||
-      Boolean(confirmedAddressQuery));
+      Boolean(confirmedShippingLatLng && shippingAddress));
 
   const canProceedToPayment = items.length > 0 && totalAmount > 0 && Boolean(isShippingComplete);
   const hasAddressDetails = hasValidAddressDetails(shippingForm);
+  const currentAddressQuery = buildAddressQuery(shippingForm);
+  const mapCenter = shippingLatLng ?? DEFAULT_MONTEVIDEO_CENTER ?? DEFAULT_URUGUAY_CENTER;
 
   const paymentSummary = useMemo(
     () => Array.from(new Set(items.map((item) => item.paymentLabel).filter(Boolean))).join(" · "),
@@ -121,13 +154,73 @@ export function CartDrawer() {
     }
     if (field === "deliveryMethod") {
       setAddressError("");
+      setGeocodeError("");
       if (value === "pickup") {
-        setConfirmedAddressQuery("");
+        setShippingAddress("");
+        setConfirmedShippingLatLng(null);
+        setShippingLatLng(null);
       }
     }
     if (field === "address" || field === "city") {
-      setConfirmedAddressQuery("");
+      setShippingAddress("");
+      setConfirmedShippingLatLng(null);
       setAddressError("");
+      setGeocodeError("");
+    }
+  }
+
+  async function handleSearchAddress() {
+    if (!hasAddressDetails) {
+      setAddressError("Ingresa una direccion valida y una ciudad para buscarla en el mapa.");
+      return;
+    }
+
+    setAddressError("");
+    setGeocodeError("");
+    setIsGeocoding(true);
+
+    try {
+      const params = new URLSearchParams({
+        format: "jsonv2",
+        limit: "1",
+        countrycodes: "uy",
+        q: currentAddressQuery
+      });
+
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+        headers: {
+          Accept: "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("No pudimos buscar esa direccion en OpenStreetMap.");
+      }
+
+      const payload = (await response.json()) as Array<{ lat: string; lon: string; display_name?: string }>;
+      const match = payload[0];
+
+      if (!match) {
+        throw new Error("No pudimos encontrar esa direccion. Ajusta la calle o la ciudad e intenta nuevamente.");
+      }
+
+      setShippingLatLng({
+        lat: Number(match.lat),
+        lng: Number(match.lon)
+      });
+      setConfirmedShippingLatLng(null);
+      setShippingAddress(match.display_name?.trim() || currentAddressQuery);
+    } catch (error) {
+      setShippingLatLng(null);
+      setConfirmedShippingLatLng(null);
+      setShippingAddress("");
+      setGeocodeError(
+        error instanceof Error
+          ? error.message
+          : "No pudimos validar la direccion en este momento."
+      );
+    } finally {
+      setIsGeocoding(false);
     }
   }
 
@@ -137,8 +230,21 @@ export function CartDrawer() {
       return;
     }
 
-    setConfirmedAddressQuery(buildAddressQuery(shippingForm));
+    if (!shippingLatLng) {
+      setAddressError("Ubica la direccion en el mapa antes de confirmarla.");
+      return;
+    }
+
+    setShippingAddress(shippingAddress || currentAddressQuery);
+    setConfirmedShippingLatLng(shippingLatLng);
     setAddressError("");
+  }
+
+  function handleSelectCoordinates(coordinates: AddressCoordinates) {
+    setShippingLatLng(coordinates);
+    setConfirmedShippingLatLng(null);
+    setAddressError("");
+    setGeocodeError("");
   }
 
   async function handleCreatePayment() {
@@ -352,76 +458,30 @@ export function CartDrawer() {
 
               {shippingForm.deliveryMethod === "shipping" ? (
                 <section className="space-y-3 rounded-[1.5rem] border border-line bg-surface p-4">
-                  <div className="space-y-1">
-                    <h3 className="text-[11px] uppercase tracking-[0.18em] text-muted">Envio a domicilio</h3>
-                    <p className="text-sm leading-6 text-muted">
-                      Confirma tu direccion antes de continuar para minimizar errores y revisar el area de entrega.
-                    </p>
-                  </div>
-                  <div className="grid gap-3">
-                    <input
-                      className="min-h-11 rounded-2xl border border-line bg-background px-4 text-sm"
-                      placeholder="Direccion"
-                      value={shippingForm.address}
-                      onChange={(event) => updateShippingField("address", event.target.value)}
-                    />
-                    <input
-                      className="min-h-11 rounded-2xl border border-line bg-background px-4 text-sm"
-                      placeholder="Ciudad"
-                      value={shippingForm.city}
-                      onChange={(event) => updateShippingField("city", event.target.value)}
-                    />
-                    <textarea
-                      className="min-h-24 rounded-2xl border border-line bg-background px-4 py-3 text-sm"
-                      placeholder="Notas para la entrega (opcional)"
-                      value={shippingForm.notes}
-                      onChange={(event) => updateShippingField("notes", event.target.value)}
+                  <AddressSearch
+                    address={shippingForm.address}
+                    city={shippingForm.city}
+                    notes={shippingForm.notes}
+                    isSearching={isGeocoding}
+                    hasCoordinates={Boolean(shippingLatLng)}
+                    isConfirmed={Boolean(confirmedShippingLatLng)}
+                    geocodeError={geocodeError}
+                    addressError={addressError}
+                    confirmedAddressLabel={shippingAddress}
+                    confirmedCoordinates={confirmedShippingLatLng}
+                    onAddressChange={(value) => updateShippingField("address", value)}
+                    onCityChange={(value) => updateShippingField("city", value)}
+                    onNotesChange={(value) => updateShippingField("notes", value)}
+                    onSearch={handleSearchAddress}
+                    onConfirm={handleConfirmAddress}
+                  />
+                  <div className="space-y-2">
+                    <AddressMap
+                      center={mapCenter}
+                      markerPosition={shippingLatLng}
+                      onSelectPosition={handleSelectCoordinates}
                     />
                   </div>
-                  <button
-                    type="button"
-                    className={`inline-flex min-h-11 w-full items-center justify-center rounded-full px-5 text-sm font-medium uppercase tracking-[0.16em] ${
-                      hasAddressDetails ? "bg-foreground text-background" : "bg-line text-white/80"
-                    }`}
-                    disabled={!hasAddressDetails}
-                    onClick={handleConfirmAddress}
-                  >
-                    {confirmedAddressQuery ? "Direccion confirmada" : "Confirmar direccion de envio"}
-                  </button>
-                  {addressError ? (
-                    <div className="rounded-[1rem] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                      {addressError}
-                    </div>
-                  ) : null}
-                  {confirmedAddressQuery ? (
-                    <div className="space-y-3 rounded-[1.25rem] border border-line bg-background p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Direccion validada</p>
-                          <p className="mt-1 text-sm leading-6 text-foreground">{confirmedAddressQuery}</p>
-                        </div>
-                        <span className="rounded-full bg-accent/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-accent">
-                          Confirmada
-                        </span>
-                      </div>
-                      <div className="overflow-hidden rounded-[1rem] border border-line">
-                        <iframe
-                          title="Mapa de direccion de envio"
-                          src={`https://maps.google.com/maps?q=${encodeURIComponent(confirmedAddressQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
-                          className="h-44 w-full border-0"
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                        />
-                      </div>
-                      <p className="text-xs leading-5 text-muted">
-                        Revisa la referencia del mapa y, si necesitas corregir algo, edita la direccion antes de seguir.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="rounded-[1rem] border border-dashed border-line bg-background px-3 py-3 text-sm text-muted">
-                      Completa tus datos y confirma la direccion para habilitar el siguiente paso.
-                    </div>
-                  )}
                 </section>
               ) : (
                 <section className="space-y-3 rounded-[1.5rem] border border-line bg-surface p-4">
@@ -494,7 +554,12 @@ export function CartDrawer() {
                   <p>{shippingForm.phone}</p>
                   {shippingForm.deliveryMethod === "shipping" ? (
                     <>
-                      <p>{confirmedAddressQuery || buildAddressQuery(shippingForm)}</p>
+                      <p>{shippingAddress || buildAddressQuery(shippingForm)}</p>
+                      {confirmedShippingLatLng ? (
+                        <p>
+                          {confirmedShippingLatLng.lat.toFixed(5)}, {confirmedShippingLatLng.lng.toFixed(5)}
+                        </p>
+                      ) : null}
                     </>
                   ) : (
                     <p>Retiro coordinado por local</p>
