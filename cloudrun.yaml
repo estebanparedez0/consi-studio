@@ -1,0 +1,26 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: consi-studio
+spec:
+  template:
+    spec:
+      containers:
+        - image: IMAGE
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "8080"
+            - name: CATALOG_API_URL
+              value: "https://hook.us1.make.com/0yj7wtd83l0ndymto95wzvmywb1rbq1e"
+            - name: NEXT_PUBLIC_SITE_URL
+              value: "https://YOUR_DOMAIN"
+            - name: NEXT_PUBLIC_WHATSAPP_NUMBER
+              value: "59800000000"
+      timeoutSeconds: 300
+  traffic:
+    - latestRevision: true
+      percent: 100
